@@ -206,10 +206,10 @@ for splitIdx in trange(nsplits, desc='nsplits'):
     dataset = loader.get_dataset()
     train_dataset, test_dataset = temporal_signal_split(dataset, train_ratio=0.9)
     model = tdegnn_temporal(nlayers=args.layers, nhid=n_channels, nin=num_features, nout=num_output, dropout=dropout,
-                   h=dt, sharedWeights=args.sharedWeights, addU0=args.addU0,
-                   multiplicativeReaction=args.multLayers, explicit=args.explicit, dropoutOC=dropoutOC,
-                   metrpems=False, mha_dropout=mha_dropout, useMHA=args.useMHA, baseline=args.baseline,
-                   order=args.order)
+                            h=dt, sharedWeights=args.sharedWeights, addU0=args.addU0,
+                            multiplicativeReaction=args.multLayers, explicit=args.explicit, dropoutOC=dropoutOC,
+                            metrpems=False, mha_dropout=mha_dropout, useMHA=args.useMHA, baseline=args.baseline,
+                            order=args.order)
     model.reset_parameters()
     model = model.to(device)
 
