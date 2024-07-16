@@ -124,23 +124,11 @@ class tdegnn_temporal(nn.Module):
             self.KR1[i].bias = torch.nn.Parameter(torch.zeros_like(self.KR1[i].bias))
             self.KR2[i].bias = torch.nn.Parameter(torch.zeros_like(self.KR2[i].bias))
 
-            self.selfScore[i].weight = torch.nn.Parameter(
-                torch.eye(n=self.selfScore[i].weight.shape[0], m=self.selfScore[i].weight.shape[1]))
-            self.selfScore[i].bias = torch.nn.Parameter(2 * torch.ones_like(self.selfScore[i].bias))
-
             if self.addU0:
                 self.KRU0_1[i].weight = torch.nn.Parameter(
                     torch.eye(self.KRU0_1[i].weight.shape[0], self.KRU0_1[i].weight.shape[1]) + 1e-2 * torch.randn(
                         self.KRU0_1[i].weight.shape))
                 self.KRU0_1[i].bias = torch.nn.Parameter(torch.zeros_like(self.KRU0_1[i].bias))
-
-            glorot(self.VQ[i].weight)
-            glorot(self.VW[i].weight)
-            glorot(self.VK[i].weight)
-
-            zeros(self.VQ[i].bias)
-            zeros(self.VW[i].bias)
-            zeros(self.VK[i].bias)
 
         glorot(self.KopenHist.weight)
         glorot(self.KopenState.weight)
