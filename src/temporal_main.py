@@ -1,10 +1,15 @@
 try:
-    from tqdm import tqdm
+    from tqdm import tqdm, trange
 except ImportError:
     def tqdm(iterable):
         return iterable
+
+
+    def trange(iterable):
+        return iterable
 import sys
 import os
+
 sys.path.append(os.getcwd())
 import numpy as np
 import torch
@@ -46,7 +51,6 @@ parser.add_argument(
     type=int,
     help='if 0 learn incremental otherwise cumulative',
 )
-
 
 parser.add_argument(
     "--order",
@@ -151,7 +155,6 @@ def mape(pred, gt):
 
 args = parser.parse_args()
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-device = 'cpu'
 nsplits = 10
 num_epochs = 100
 datastr = args.dataset
@@ -160,12 +163,11 @@ base_path = '.'
 
 outputpath = os.path.join(base_path, args.outputDir)
 datapath = os.path.join(base_path, 'temporal_data')
-datapath = os.path.join(datapath, args.dataset)
 if not os.path.exists(outputpath):
     os.mkdir(outputpath)
 if not os.path.exists(datapath):
     os.mkdir(datapath)
-
+datapath = os.path.join(datapath, args.dataset)
 
 split_test_costs = []
 num_features = 4
@@ -186,7 +188,7 @@ dt = 0.1
 mha_dropout = 0.1
 n_channels = 64
 
-for splitIdx in range(nsplits):
+for splitIdx in trange(nsplits, desc='nsplits'):
     torch.manual_seed(splitIdx)
     np.random.seed(splitIdx)
     if datastr.lower() == 'pedalme':
@@ -224,6 +226,7 @@ for splitIdx in range(nsplits):
     max_patience = 20
     bad_counter = 0
 
+
     def createTE(time, nfreqs=10, lags=4):
         freqs = np.arange(1, nfreqs + 1).reshape(1, 1, nfreqs)
         time = np.arange(time * lags, time * (lags) + lags)
@@ -234,13 +237,14 @@ for splitIdx in range(nsplits):
         time_feature = time_feature.repeat(snapshot.x.shape[0], 1, 1).to(device)
         return time_feature.float()
 
+
     def eval_test():
         model.eval()
         cost = 0
         test_rmse = 0
         test_mape = 0
         with torch.no_grad():
-            for time, snapshot in enumerate(test_dataset):
+            for time, snapshot in enumerate(tqdm(test_dataset, desc='Testing')):
                 snapshot = snapshot.to(device)
                 snapshot = snapshot.to(device)
                 actual_time = time + len(train_dataset.targets)
@@ -255,6 +259,7 @@ for splitIdx in range(nsplits):
         model.train()
         return cost, test_rmse, test_mape
 
+
     best_test_cost = 9999999
     best_train_cost = 999999
 
@@ -267,7 +272,7 @@ for splitIdx in range(nsplits):
         cost = 0
 
         if args.cumulative:
-            for time, snapshot in enumerate(train_dataset):
+            for time, snapshot in enumerate(tqdm(train_dataset, desc='Training')):
                 snapshot = snapshot.to(device)
                 tt = time if args.timeEmbedding else None
                 y_hat = model(snapshot.x, snapshot.edge_index, regression=True)
@@ -281,7 +286,7 @@ for splitIdx in range(nsplits):
             train_cost = 0
             train_rmse = 0
             train_mape = 0
-            for time, snapshot in enumerate(train_dataset):
+            for time, snapshot in enumerate(tqdm(train_dataset, desc='Training')):
                 snapshot = snapshot.to(device)
                 time_feature = createTE(time=time, nfreqs=10, lags=model.nin)
                 y_hat = model(snapshot.x, time_feature, snapshot.edge_index, regression=True,
@@ -306,10 +311,8 @@ for splitIdx in range(nsplits):
         if bad_counter >= max_patience:
             scheduler.step()
 
-
     print("Split:", splitIdx, ", best test cost:", best_test_cost,
           ", best train cost:", best_train_cost, flush=True)
     split_test_costs.append(best_test_cost)
 print("All test costs:", split_test_costs, ", mean:", np.array(split_test_costs).mean(), ", std:",
       np.array(split_test_costs).std(), flush=True)
-
